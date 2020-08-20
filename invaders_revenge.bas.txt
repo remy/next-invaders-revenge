@@ -1,0 +1,179 @@
+#autoline 10,10
+#autostart 10
+#program invaders_revenge
+
+; ************ CONCEPT ************
+; The player controls the aliens trying to find a safe planet to live their life
+; out in peace, but the Intergalactic Space Force keeps hunting them down and
+; arriving on the planets ahead of them and destroying all the lifeforms.
+;
+; After the failed recolonanisation attempts, the planet Laputa has sent its
+; army of best space monsters to get past the ISF and finally settle their
+; species in peace.
+;
+; *********** DEV NOTES ************
+;
+; Sprite canvas: 320x256 (with border, 256x192 without)
+;
+; ************** TODO **************
+;
+;
+; ******** VARIABLE INDEX **********
+;
+; %a() = alien count
+; %b(3)() = base attributes
+; %e() = enemy attributes
+; %p() = player attributes
+; %g() = game attributes
+;
+; *********** CONSTANTS ************
+;
+; X, Y, S (sprite Id)
+;
+; ********* BANK INDEX *************
+;
+; 15: sprites
+;
+; **********************************
+
+RUN AT 3
+DEBUG=0
+
+CTR=0
+
+; constants
+%X=%1
+%Y=%2
+%S=%3
+
+PROC initOnce()
+PROC mainLoop()
+
+DEFPROC mainLoop()
+  BORDER 1
+  REPEAT
+    ;IF DEBUG THEN BORDER 1
+    PROC gameLoop()
+    ;IF DEBUG THEN BORDER 0
+  REPEAT UNTIL 0
+ENDPROC
+
+DEFPROC gameLoop()
+  ; enemy
+  ;PROC updateEnemy()
+  %k=% IN $7FFE
+
+  IF %k&1^1 THEN PROC fire()
+  PROC checkCollision()
+  PROC checkArmyMovement()
+  SPRITE MOVE INT
+ENDPROC
+
+DEFPROC initOnce()
+  PROC initAssets()
+  PROC initArmy()
+  PROC initEnemy()
+  SPRITE PRINT 1
+ENDPROC
+
+DEFPROC initArmy()
+  %p(X)=80
+  %p(Y)=0
+  %p(S)=1
+
+  SPRITE %p(S),%p(X),%p(Y),4,1, BIN 001
+
+  %a=1
+
+  ; sprites to use on each row
+  %t(0)=0
+  %t(1)=2
+  %t(2)=2
+  %t(3)=4
+  %t(4)=4
+
+  FOR %j=%0 TO %4
+    %b=% SGN {p(X)*-1}
+    IF %j <> 0 THEN %c=%11: ELSE %c=%10
+    FOR %i=%1 TO %c
+      %a(a)=1
+      IF %i=5 AND (j=0) THEN %b=% SGN {(p(X)-16)*-1}
+      SPRITE % SGN {(a+1)*-1},% SGN {b+(16*i)},%j*16,%t(j),%((t(j)/2) << 4)+1, BIN 110
+      %a=%a+1
+    NEXT %i
+  NEXT %j
+
+  %a(a)=1
+  %e(S)=%a+1
+
+  SPRITE CONTINUE %p(S),64 TO 206 STEP %8 RUN , STOP ,4 TO 5, BIN 00000010,40,40
+ENDPROC
+
+DEFPROC initEnemy()
+  %e(X)=%(320/2)-16
+  %e(Y)=%256-16
+  %e(S)=%63
+
+  SPRITE %e(S),%e(X),%e(Y),2,1
+
+  SPRITE CONTINUE %e(S),0 TO %320-16 STEP %1 RUN , STOP ,2,0,0,0
+ENDPROC
+
+DEFPROC fire()
+  ; if bullet is still moving then exit
+  IF % SPRITE 64 THEN ENDPROC
+
+  %a=% SPRITE AT (e(S),0)
+  SPRITE 64,%a,%e(Y),3,1
+
+  SPRITE CONTINUE 64,%a STOP ,0 TO %e(Y) STEP -4 RUN ,3, BIN 11,0,0
+ENDPROC
+
+DEFPROC checkArmyMovement()
+  IF % SPRITE CONTINUE p(S) >= 2 THEN ENDPROC
+
+  %a=% SPRITE AT (p(S),0): ; x
+  %b=% SPRITE AT (p(S),1): ; y
+
+  SPRITE %p(S),,%b+16
+
+  %c=%(192-b)/8
+
+  %i=1
+  IF %a=206 THEN %i=-1
+
+  SPRITE CONTINUE %p(S),64 TO 206 STEP % SGN {8*i} RUN , STOP ,4 TO 5, BIN 00000010,%c,%c
+ENDPROC
+
+DEFPROC checkCollision()
+  %a=% SPRITE OVER (64,p(S),3,7)
+
+  IF %a=0 THEN ENDPROC
+
+  IF %a(a)=0 THEN ENDPROC
+
+  SPRITE 64,,,,0: ; remove the bullet
+  SPRITE CONTINUE %a,,,6 TO 7, BIN 01100000,10,0
+  %a(a)=0
+ENDPROC
+
+DEFPROC initAssets()
+  LAYER 2,1
+  INK 255: PAPER 0
+
+  LOAD "assets/sprites.spr" BANK 15
+  SPRITE BANK 15
+  SPRITE BORDER 1
+
+  LOAD "assets/p0.pal" BANK 16
+  PALETTE DIM 9
+  SPRITE PALETTE 0 BANK 16,0
+  SPRITE PALETTE 0
+
+  ;LOAD "assets/tiles.spr" BANK 16
+  ;LOAD "assets/ir.map" BANK 17
+
+  ;TILE BANK 16
+  ;TILE DIM 17,0,16,16
+  ;TILE 16,12 AT 0,0 TO 0,0
+ENDPROC
